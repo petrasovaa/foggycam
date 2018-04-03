@@ -35,7 +35,6 @@ class FoggyCam(object):
     }
 
     nest_camera_array = []
-    nest_camera_buffer_threshold = 50
 
     is_capturing = False
     cookie_jar = None
@@ -233,8 +232,6 @@ class FoggyCam(object):
         if not os.path.exists('capture'):
             os.makedirs('capture')
 
-        self.nest_camera_buffer_threshold = config.threshold
-
         for camera in self.nest_camera_array:
             camera_path = ''
 
@@ -249,40 +246,42 @@ class FoggyCam(object):
             if not os.path.exists(camera_path):
                 os.makedirs(camera_path)
 
-            image_thread = threading.Thread(target=self.perform_capture, args=(config, camera, camera_path))
-            image_thread.daemon = True
-            image_thread.start()
+            self.perform_capture(config=config, camera=camera, camera_path=camera_path)
+#            image_thread = threading.Thread(target=self.perform_capture, args=(config, camera, camera_path))
+#            image_thread.daemon = True
+#            image_thread.start()
 
-        while True:
-            time.sleep(1)
+#        while True:
+#            time.sleep(1)
 
     def perform_capture(self, config=None, camera=None, camera_path=''):
         """Captures images."""
 
-        while self.is_capturing:
-            file_id = str(uuid.uuid4().hex)
+#        while self.is_capturing:
+        file_id = str(uuid.uuid4().hex)
+        image_name = str(datetime.now())
 
-            image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config.width))
+        image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config.width))
 
-            request = urllib.request.Request(image_url)
-            request.add_header('accept', 'accept:image/webp,image/apng,image/*,*/*;q=0.8')
-            request.add_header('accept-encoding', 'gzip, deflate, br')
-            request.add_header('user-agent', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Mobile Safari/537.36')
-            request.add_header('referer','https://home.nest.com/')
+        request = urllib.request.Request(image_url)
+        request.add_header('accept', 'accept:image/webp,image/apng,image/*,*/*;q=0.8')
+        request.add_header('accept-encoding', 'gzip, deflate, br')
+        request.add_header('user-agent', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Mobile Safari/537.36')
+        request.add_header('referer', 'https://home.nest.com/')
 
-            try:
-                response = self.merlin.open(request)
+        try:
+            response = self.merlin.open(request)
 
-                with open(camera_path + '/' + file_id + '.jpg', 'wb') as image_file:
-                    image_file.write(response.read())
+            with open(camera_path + '/' + image_name + '.jpg', 'wb') as image_file:
+                image_file.write(response.read())
 
-            except urllib.request.HTTPError as err:
-                if err.code == 403:
-                    self.initialize_session()
-                    self.login()
-                    self.initialize_user()
-            except Exception:
-                print ('ERROR: Could not download image from URL:')
-                print (image_url)
+        except urllib.request.HTTPError as err:
+            if err.code == 403:
+                self.initialize_session()
+                self.login()
+                self.initialize_user()
+        except Exception:
+            print ('ERROR: Could not download image from URL:')
+            print (image_url)
 
-                traceback.print_exc()
+            traceback.print_exc()
