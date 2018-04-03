@@ -1,18 +1,15 @@
-"""FoggyCam captures Nest camera images and generates a video."""
+"""FoggyCam captures Nest camera images."""
 
 from urllib.request import urlopen
 import urllib
 import json
 from http.cookiejar import CookieJar
 import os
-from collections import defaultdict
 import traceback
-from subprocess import Popen, PIPE
 import uuid
 import threading
 import time
 from datetime import datetime
-import subprocess
 
 
 class FoggyCam(object):
@@ -240,35 +237,27 @@ class FoggyCam(object):
 
         for camera in self.nest_camera_array:
             camera_path = ''
-            video_path = ''
 
             # Determine whether the entries should be copied to a custom path
             # or not.
             if not config.path:
                 camera_path = os.path.join(self.local_path, 'capture', camera, 'images')
-                video_path = os.path.join(self.local_path, 'capture', camera, 'video')
             else:
                 camera_path = os.path.join(config.path, 'capture', camera, 'images')
-                video_path = os.path.join(config.path, 'capture', camera, 'video')
 
             # Provision the necessary folders for images and videos.
             if not os.path.exists(camera_path):
                 os.makedirs(camera_path)
 
-            if not os.path.exists(video_path):
-                os.makedirs(video_path)
-
-            image_thread = threading.Thread(target=self.perform_capture, args=(config, camera, camera_path, video_path))
+            image_thread = threading.Thread(target=self.perform_capture, args=(config, camera, camera_path))
             image_thread.daemon = True
             image_thread.start()
 
         while True:
             time.sleep(1)
 
-    def perform_capture(self, config=None, camera=None, camera_path='', video_path=''):
-        """Captures images and generates the video from them."""
-
-        camera_buffer = defaultdict(list)
+    def perform_capture(self, config=None, camera=None, camera_path=''):
+        """Captures images."""
 
         while self.is_capturing:
             file_id = str(uuid.uuid4().hex)
@@ -287,56 +276,6 @@ class FoggyCam(object):
                 with open(camera_path + '/' + file_id + '.jpg', 'wb') as image_file:
                     image_file.write(response.read())
 
-                # Check if we need to compile a video
-                if config.produce_video:
-                    camera_buffer_size = len(camera_buffer[camera])
-                    print ('[', threading.current_thread().name, '] INFO: Camera buffer size for ', camera, ': ', camera_buffer_size)
-
-                    if camera_buffer_size < self.nest_camera_buffer_threshold:
-                        camera_buffer[camera].append(file_id)
-                    else:
-                        camera_image_folder = os.path.join(self.local_path, camera_path)
-
-                        # Build the batch of files that need to be made into a video.
-                        file_declaration = ''
-                        for buffer_entry in camera_buffer[camera]:
-                            file_declaration = file_declaration + 'file \'' + camera_image_folder + '/' + buffer_entry + '.jpg\'\n'
-                        concat_file_name = os.path.join(self.temp_dir_path, camera + '.txt')
-                        with open(concat_file_name, 'w') as declaration_file:
-                            declaration_file.write(file_declaration)
-
-                        # Check if we have ffmpeg locally
-                        use_terminal = False
-                        ffmpeg_path = ''
-
-                        exist = subprocess.call('command -v ffmpeg >> /dev/null', shell=True)
-                        if exist == 0:
-                            ffmpeg_path = 'ffmpeg'
-                            use_terminal = True
-                        else:
-                            ffmpeg_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'tools', 'ffmpeg'))
-                        
-                        if use_terminal or (os.path.isfile(ffmpeg_path) and use_terminal is False):
-                            print ('INFO: Found ffmpeg. Processing video!')
-                            target_video_path = os.path.join(video_path, file_id + '.mp4')
-                            process = Popen([ffmpeg_path, '-r', str(config.frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
-                            process.communicate()
-                            os.remove(concat_file_name)
-                            print ('INFO: Video processing is complete!')
-
-                            # If the user specified the need to remove images post-processing
-                            # then clear the image folder from images in the buffer.
-                            if config.clear_images:
-                                for buffer_entry in camera_buffer[camera]:
-                                    deletion_target = os.path.join(camera_path, buffer_entry + '.jpg')
-                                    print ('INFO: Deleting ' + deletion_target)
-                                    os.remove(deletion_target)
-                        else:
-                            print ('WARNING: No ffmpeg detected. Make sure the binary is in /tools.')
-
-                        # Empty buffer, since we no longer need the file records that we're planning
-                        # to compile in a video.
-                        camera_buffer[camera] = []
             except urllib.request.HTTPError as err:
                 if err.code == 403:
                     self.initialize_session()
