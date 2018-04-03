@@ -13,7 +13,6 @@ import threading
 import time
 from datetime import datetime
 import subprocess
-from azurestorageprovider import AzureStorageProvider
 
 
 class FoggyCam(object):
@@ -324,15 +323,6 @@ class FoggyCam(object):
                             process.communicate()
                             os.remove(concat_file_name)
                             print ('INFO: Video processing is complete!')
-
-                            # Upload the video
-                            storage_provider = AzureStorageProvider()
-
-                            if bool(config.upload_to_azure):
-                                print ('INFO: Uploading to Azure Storage...')
-                                target_blob = 'foggycam/' + camera + '/' + file_id + '.mp4'
-                                storage_provider.upload_video(account_name=config.az_account_name, sas_token=config.az_sas_token, container='foggycam', blob=target_blob, path=target_video_path)
-                                print ('INFO: Upload complete.')
 
                             # If the user specified the need to remove images post-processing
                             # then clear the image folder from images in the buffer.
