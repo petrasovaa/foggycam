@@ -9,6 +9,7 @@ import traceback
 import uuid
 import threading
 import time
+import shutil
 from datetime import datetime
 from subprocess import call
 
