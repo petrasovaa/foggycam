@@ -10,6 +10,7 @@ import uuid
 import threading
 import time
 from datetime import datetime
+from subprocess import call
 
 
 class FoggyCam(object):
@@ -285,3 +286,23 @@ class FoggyCam(object):
             print (image_url)
 
             traceback.print_exc()
+        finally:
+            imgpath = camera_path + '/' + image_name + '.jpg'
+            if not os.path.exists(imgpath) or os.path.getsize(imgpath) < 100:
+                with open('tmp_email.txt', 'w') as email:
+                    email.write("To: " + config.email + '\nFrom: '
+                                 + config.email + '\nSubject: NEST alert\n\nImage '
+                                 + image_name + ' was not captured\n')
+                call('ssmtp ' + config.email + ' < ' + 'tmp_email.txt', shell=True)
+                os.remove('tmp_email.txt')
+            else:
+                try:
+                    shutil.copy2(imgpath, config.storage)
+                except:
+                    with open('tmp_email.txt', 'w') as email:
+                        email.write("To: " + config.email + '\nFrom: '
+                                     + config.email + '\nSubject: NEST alert\n\nImage '
+                                     + image_name + ' was copied to storage\n')
+                    call('ssmtp ' + config.email + ' < ' + 'tmp_email.txt', shell=True)
+                    os.remove('tmp_email.txt')
+
