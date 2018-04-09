@@ -262,6 +262,7 @@ class FoggyCam(object):
 #        while self.is_capturing:
         file_id = str(uuid.uuid4().hex)
         image_name = str(datetime.now())
+        image_name = image_name.replace(':', '-').replace(' ', '_')
 
         image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config.width))
 
