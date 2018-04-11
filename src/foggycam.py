@@ -239,10 +239,10 @@ class FoggyCam(object):
 
             # Determine whether the entries should be copied to a custom path
             # or not.
-            if not config.path:
+            if not config["path"]:
                 camera_path = os.path.join(self.local_path, 'capture', camera, 'images')
             else:
-                camera_path = os.path.join(config.path, 'capture', camera, 'images')
+                camera_path = os.path.join(config["path"], 'capture', camera, 'images')
 
             # Provision the necessary folders for images and videos.
             if not os.path.exists(camera_path):
@@ -264,7 +264,7 @@ class FoggyCam(object):
         image_name = str(datetime.now())
         image_name = image_name.replace(':', '-').replace(' ', '_')
 
-        image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config.width))
+        image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config["width"]))
 
         request = urllib.request.Request(image_url)
         request.add_header('accept', 'accept:image/webp,image/apng,image/*,*/*;q=0.8')
@@ -292,19 +292,19 @@ class FoggyCam(object):
             imgpath = camera_path + '/' + image_name + '.jpg'
             if not os.path.exists(imgpath) or os.path.getsize(imgpath) < 100:
                 with open('tmp_email.txt', 'w') as email:
-                    email.write("To: " + config.email + '\nFrom: '
-                                 + config.email + '\nSubject: NEST alert\n\nImage '
+                    email.write("To: " + config["email"] + '\nFrom: '
+                                 + config["email"] + '\nSubject: NEST alert\n\nImage '
                                  + image_name + ' was not captured\n')
-                call('ssmtp ' + config.email + ' < ' + 'tmp_email.txt', shell=True)
+                call('ssmtp ' + config["email"] + ' < ' + 'tmp_email.txt', shell=True)
                 os.remove('tmp_email.txt')
             else:
                 try:
-                    shutil.copy2(imgpath, config.storage)
+                    shutil.copy2(imgpath, config["storage"][camera])
                 except:
                     with open('tmp_email.txt', 'w') as email:
-                        email.write("To: " + config.email + '\nFrom: '
-                                     + config.email + '\nSubject: NEST alert\n\nImage '
-                                     + image_name + ' was copied to storage\n')
-                    call('ssmtp ' + config.email + ' < ' + 'tmp_email.txt', shell=True)
+                        email.write("To: " + config["email"] + '\nFrom: '
+                                     + config["email"] + '\nSubject: NEST alert\n\nImage '
+                                     + image_name + ' was not copied to storage\n')
+                    call('ssmtp ' + config["email"] + ' < ' + 'tmp_email.txt', shell=True)
                     os.remove('tmp_email.txt')
 

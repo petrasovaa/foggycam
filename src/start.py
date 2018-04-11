@@ -10,7 +10,8 @@ print ('Welcome to FoggyCam 1.0 - Nest video/image capture tool')
 CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'config.json'))
 print (CONFIG_PATH)
 
-CONFIG = json.load(open(CONFIG_PATH), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+#CONFIG = json.load(open(CONFIG_PATH), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
+CONFIG = json.load(open(CONFIG_PATH))
 
-CAM = FoggyCam(username=CONFIG.username, password=CONFIG.password)
+CAM = FoggyCam(username=CONFIG["username"], password=CONFIG["password"])
 CAM.capture_images(CONFIG)
