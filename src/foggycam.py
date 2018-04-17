@@ -247,8 +247,10 @@ class FoggyCam(object):
             # Provision the necessary folders for images and videos.
             if not os.path.exists(camera_path):
                 os.makedirs(camera_path)
-
-            self.perform_capture(config=config, camera=camera, camera_path=camera_path)
+            hour = datetime.now().hour
+            if config['monitoring'][camera] is None or \
+                config['monitoring'][camera][0] <= hour < config['monitoring'][camera][1]:
+                self.perform_capture(config=config, camera=camera, camera_path=camera_path)
 #            image_thread = threading.Thread(target=self.perform_capture, args=(config, camera, camera_path))
 #            image_thread.daemon = True
 #            image_thread.start()

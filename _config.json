@@ -4,6 +4,10 @@
     "path": "",
     "width": 1280,
     "email": "",
+    "monitoring": {
+     "": [6, 21],
+     "": null
+    },
     "storage": {
         "": ""
     }
